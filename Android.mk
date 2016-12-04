@@ -134,6 +134,7 @@ LOCAL_MODULE := libbusybox
 LOCAL_MODULE_TAGS := optional
 LOCAL_STATIC_LIBRARIES := libcutils libc libm libselinux
 LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_minimal)
+LOCAL_CFLAGS += -Wno-format-security
 include $(BUILD_STATIC_LIBRARY)
 
 
