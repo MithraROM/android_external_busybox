@@ -131,7 +131,7 @@ LOCAL_CFLAGS += \
   -Dgenerate_uuid=busybox_generate_uuid
 LOCAL_ASFLAGS := $(BUSYBOX_AFLAGS)
 LOCAL_MODULE := libbusybox
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng debug
 LOCAL_STATIC_LIBRARIES := libcutils libc libm libselinux
 LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_minimal)
 LOCAL_CFLAGS += -Wno-format-security
@@ -150,35 +150,32 @@ LOCAL_C_INCLUDES := $(bb_gen)/full/include $(BUSYBOX_C_INCLUDES)
 LOCAL_CFLAGS := $(BUSYBOX_CFLAGS)
 LOCAL_ASFLAGS := $(BUSYBOX_AFLAGS)
 LOCAL_MODULE := busybox
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng debug
 LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
 LOCAL_SHARED_LIBRARIES := libc libcutils libm
 LOCAL_STATIC_LIBRARIES := libclearsilverregex libuclibcrpc libselinux
-LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_full) busybox_symlinks
+LOCAL_ADDITIONAL_DEPENDENCIES := $(busybox_prepare_full)
 LOCAL_CLANG := false
-
-BUSYBOX_BINARY := $(LOCAL_MODULE)
 include $(BUILD_EXECUTABLE)
 
-# Symlinks
-
-LOCAL_PATH := $(BB_PATH)
-include $(CLEAR_VARS)
-
-LOCAL_MODULE := busybox_symlinks
-LOCAL_MODULE_TAGS := optional
-
-# nc is provided by external/netcat
-BUSYBOX_EXCLUDE := nc
-
 BUSYBOX_LINKS := $(shell cat $(BB_PATH)/busybox-$(BUSYBOX_CONFIG).links)
-BUSYBOX_SYMLINKS := $(filter-out $(BUSYBOX_EXCLUDE),$(notdir $(BUSYBOX_LINKS)))
+# nc is provided by external/netcat
+exclude := nc
+SYMLINKS := $(addprefix $(TARGET_OUT_OPTIONAL_EXECUTABLES)/,$(filter-out $(exclude),$(notdir $(BUSYBOX_LINKS))))
+$(SYMLINKS): BUSYBOX_BINARY := $(LOCAL_MODULE)
+$(SYMLINKS): $(LOCAL_INSTALLED_MODULE)
+	@echo -e ${CL_CYN}"Symlink:"${CL_RST}" $@ -> $(BUSYBOX_BINARY)"
+	@mkdir -p $(dir $@)
+	@rm -rf $@
+	$(hide) ln -sf $(BUSYBOX_BINARY) $@
 
-LOCAL_POST_INSTALL_CMD := \
-    $(hide) mkdir -p $(TARGET_OUT_OPTIONAL_EXECUTABLES) && \
-    $(foreach t,$(BUSYBOX_SYMLINKS),ln -sf $(BUSYBOX_BINARY) $(TARGET_OUT_OPTIONAL_EXECUTABLES)/$(t);)
+ALL_DEFAULT_INSTALLED_MODULES += $(SYMLINKS)
 
-include $(BUILD_PHONY_PACKAGE)
+# We need this so that the installed files could be picked up based on the
+# local module name
+ALL_MODULES.$(LOCAL_MODULE).INSTALLED := \
+    $(ALL_MODULES.$(LOCAL_MODULE).INSTALLED) $(SYMLINKS)
+
 
 # Static Busybox
 
